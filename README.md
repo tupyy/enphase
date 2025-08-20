@@ -486,6 +486,8 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 ## 📄 License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 This project is based on official Enphase Energy documentation. Please refer to Enphase's terms of service and API usage guidelines.
 
 ## 🔗 Related Resources
