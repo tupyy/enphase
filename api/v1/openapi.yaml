@@ -1,0 +1,1297 @@
+openapi: 3.0.0
+info:
+  title: Enphase IQ Gateway Local API
+  description: |
+    OpenAPI specification for Enphase IQ Gateway Local API endpoints.
+    
+    This API provides access to local data from Enphase IQ Gateway devices including:
+    - System information and device details
+    - Energy production and consumption data
+    - Meter readings and live data
+    - Inverter production information
+    - Grid connection status
+    
+    Authentication is required using Bearer tokens. Tokens can be generated through the Enphase web portal
+    or programmatically using the token generation endpoints.
+    
+    **Token Validity:**
+    - System owner tokens: Valid for 1 year
+    - Installer tokens: Valid for 12 hours
+    
+    **Note:** Some endpoints may require specific hardware (meters, storage, etc.) to be installed and enabled.
+  version: 2.0.0
+  contact:
+    name: Enphase Energy
+    url: https://enphase.com
+  license:
+    name: Enphase Energy License
+    url: https://enphase.com/trademark-usage-guidelines
+
+servers:
+  - url: https://{IQ_Gateway_ip}
+    description: IQ Gateway Local API Server
+    variables:
+      IQ_Gateway_ip:
+        default: envoy.local
+        description: IP address or hostname of the IQ Gateway (e.g., 192.168.1.100 or envoy.local)
+
+security:
+  - BearerAuth: []
+
+paths:
+  /info:
+    get:
+      summary: Get system information
+      description: |
+        Returns serial number, model ID, and firmware version information.
+        This endpoint is accessible without authentication.
+      operationId: getSystemInfo
+      tags:
+        - system
+      security: []  # No authentication required
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/SystemInfo'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/ensemble/device_list:
+    get:
+      summary: Get provisioned device details
+      description: |
+        Returns the commissioning status of provisioned devices including storage devices,
+        microinverters, and other connected equipment.
+      operationId: getDeviceList
+      tags:
+        - system
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceList'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/meters:
+    get:
+      summary: Get meter details
+      description: |
+        Returns meter status, type of meter, and number of phase measurements
+        for all installed current transformers (CTs).
+      operationId: getMeterDetails
+      tags:
+        - meters
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterDetails'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/meters/readings:
+    get:
+      summary: Get meter readings
+      description: |
+        Returns measurements from production CT, storage CT, and consumption CT.
+        Data availability depends on installed CTs. Data updates every 5 minutes.
+      operationId: getMeterReadings
+      tags:
+        - meters
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterReadings'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/production:
+    get:
+      summary: Get production meter data
+      description: |
+        Returns production energy and active power values for today, last seven days,
+        and lifetime in watt-hours. Only works when production meter is installed and enabled.
+      operationId: getProductionData
+      tags:
+        - production
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionData'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Production meter not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/pdm/energy:
+    get:
+      summary: Get energy data
+      description: |
+        Returns energy and active power values for microinverters, revenue grade meters,
+        production and consumption meters for today, last seven days, and lifetime.
+        Works even when production meter is not installed.
+      operationId: getEnergyData
+      tags:
+        - production
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnergyData'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/production/inverters:
+    get:
+      summary: Get inverter production data
+      description: |
+        Returns maximum and last reported active power production information
+        for all available microinverters. Data updates every 5 minutes.
+      operationId: getInverterProduction
+      tags:
+        - production
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InverterProduction'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/livedata/status:
+    get:
+      summary: Get meter live data
+      description: |
+        Returns meter live data with connection status, meter readings,
+        task information, and system counters.
+      operationId: getLiveDataStatus
+      tags:
+        - meters
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveDataStatus'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/meters/reports/consumption:
+    get:
+      summary: Get power consumption data
+      description: |
+        Returns power consumption information of the loads including cumulative
+        and per-phase measurements. Data updates every 5 minutes.
+      operationId: getConsumptionData
+      tags:
+        - consumption
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsumptionData'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /ivp/meters/gridReading:
+    get:
+      summary: Get grid readings
+      description: |
+        Returns voltage, current, frequency, active and reactive power
+        at the point of grid connection. Negative values indicate export (feed-in),
+        positive values indicate import (grid-supply).
+      operationId: getGridReading
+      tags:
+        - grid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GridReading'
+        '401':
+          description: Unauthorized - invalid or missing token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: system
+    description: System information and device details
+  - name: meters
+    description: Meter readings and status
+  - name: production
+    description: Energy production data
+  - name: consumption
+    description: Energy consumption data
+  - name: grid
+    description: Grid connection data
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token obtained from Enphase authentication service
+
+  schemas:
+    Error:
+      type: object
+      description: Error response
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: integer
+          description: Error code
+
+    SystemInfo:
+      type: object
+      description: System information including serial number, model, and firmware versions
+      properties:
+        time:
+          type: integer
+          format: int64
+          description: Unix timestamp
+          example: 1658403712
+        device:
+          type: object
+          properties:
+            sn:
+              type: string
+              description: Gateway serial number
+              example: "122125067699"
+            pn:
+              type: string
+              description: Gateway part number
+              example: "800-00654-r06"
+            software:
+              type: string
+              description: Gateway software version
+              example: "D7.4.22"
+            euaid:
+              type: string
+              description: Gateway EUAID
+              example: "4c8675"
+            seqnum:
+              type: integer
+              description: Sequence number
+              example: 0
+            apiver:
+              type: integer
+              description: API version
+              example: 1
+            imeter:
+              type: boolean
+              description: Internal meter presence
+              example: true
+        web-tokens:
+          type: boolean
+          description: Web tokens support
+          example: true
+        packages:
+          type: array
+          description: Installed software packages
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Package name
+                example: "app"
+              pn:
+                type: string
+                description: Part number
+                example: "500-00002-r01"
+              version:
+                type: string
+                description: Package version
+                example: "07.04.22"
+              build:
+                type: string
+                description: Build identifier
+                example: "d153a8"
+
+    DeviceList:
+      type: object
+      description: List of provisioned devices and their commissioning status
+      properties:
+        usb:
+          type: object
+          properties:
+            ck2_bridge:
+              type: string
+              description: CK2 bridge connection status
+              example: "connected"
+            auto_scan:
+              type: string
+              description: Auto scan status
+              example: "false"
+        devices:
+          type: array
+          description: Array of provisioned devices
+          items:
+            type: object
+            properties:
+              serial_number:
+                type: string
+                description: Serial number of the device
+                example: "492203008650"
+              device_type:
+                type: integer
+                description: Device type (0=Unknown, 13=Storage, 14=Microinverters)
+                example: 13
+              com_interface:
+                type: integer
+                description: Communication interface
+                example: 2
+              com_interface_str:
+                type: string
+                description: Communication interface string
+                example: "CAN"
+              status:
+                type: string
+                description: Device connection status
+                example: "Connected"
+              dev_info:
+                type: object
+                properties:
+                  capacity:
+                    type: integer
+                    description: Device capacity in watt-hours
+                    example: 4960
+                  DER_Index:
+                    type: integer
+                    description: Connected phase (1=Phase1, 2=Phase2, 3=Phase3)
+                    example: 1
+
+    MeterDetails:
+      type: array
+      description: Meter status, type, and phase information
+      items:
+        type: object
+        properties:
+          eid:
+            type: integer
+            format: int64
+            description: Meter ID
+            example: 704643328
+          state:
+            type: string
+            description: Meter state (enabled/disabled)
+            example: "enabled"
+          measurementType:
+            type: string
+            description: Type of measurement
+            enum: ["production", "net-consumption", "storage"]
+            example: "production"
+          phaseMode:
+            type: string
+            description: Number of phases the meter hardware can monitor
+            example: "split"
+          phaseCount:
+            type: integer
+            description: Number of phases meter is monitoring
+            example: 2
+          meteringStatus:
+            type: string
+            description: Metering status
+            example: "normal"
+          statusFlags:
+            type: array
+            description: Status flags
+            items:
+              type: string
+
+    MeterReadings:
+      type: array
+      description: Measurements from production, storage, and consumption CTs
+      items:
+        type: object
+        properties:
+          eid:
+            type: integer
+            format: int64
+            description: Meter ID
+            example: 704643328
+          timestamp:
+            type: integer
+            format: int64
+            description: Epoch timestamp of measurement
+            example: 1654218661
+          actEnergyDlvd:
+            type: number
+            format: float
+            description: Overall active energy delivered (Wh)
+            example: 1608426.912
+          actEnergyRcvd:
+            type: number
+            format: float
+            description: Overall active energy received (Wh)
+            example: 4.923
+          apparentEnergy:
+            type: number
+            format: float
+            description: Overall apparent energy (VAh)
+            example: 1648123.109
+          reactEnergyLagg:
+            type: number
+            format: float
+            description: Overall lagging reactive energy (VArh)
+            example: 52600.292
+          reactEnergyLead:
+            type: number
+            format: float
+            description: Overall leading reactive energy (VArh)
+            example: 19013.342
+          instantaneousDemand:
+            type: number
+            format: float
+            description: Instantaneous active power demand (Watts)
+            example: 132.118
+          activePower:
+            type: number
+            format: float
+            description: Instantaneous active power (Watts)
+            example: 132.118
+          apparentPower:
+            type: number
+            format: float
+            description: Instantaneous apparent power (VA)
+            example: 5328.778
+          reactivePower:
+            type: number
+            format: float
+            description: Instantaneous reactive power (VAr)
+            example: -5328.778
+          pwrFactor:
+            type: number
+            format: float
+            description: Measured power factor
+            example: 0.025
+          voltage:
+            type: number
+            format: float
+            description: Measured voltage (Volts)
+            example: 246.377
+          current:
+            type: number
+            format: float
+            description: Measured current (Amperes)
+            example: 43.257
+          freq:
+            type: number
+            format: float
+            description: Measured frequency (Hz)
+            example: 59.188
+          channels:
+            type: array
+            description: Per-phase channel measurements
+            items:
+              type: object
+              properties:
+                eid:
+                  type: integer
+                  format: int64
+                  description: Channel ID
+                  example: 1778385169
+                timestamp:
+                  type: integer
+                  format: int64
+                  description: Epoch timestamp
+                  example: 1654218661
+                actEnergyDlvd:
+                  type: number
+                  format: float
+                  description: Active energy delivered in this channel (Wh)
+                  example: 803639.138
+                actEnergyRcvd:
+                  type: number
+                  format: float
+                  description: Active energy received in this channel (Wh)
+                  example: 2.650
+                apparentEnergy:
+                  type: number
+                  format: float
+                  description: Apparent energy in this channel (VAh)
+                  example: 823442.481
+                reactEnergyLagg:
+                  type: number
+                  format: float
+                  description: Lagging reactive energy in this channel (VArh)
+                  example: 26264.291
+                reactEnergyLead:
+                  type: number
+                  format: float
+                  description: Leading reactive energy in this channel (VArh)
+                  example: 9545.452
+                instantaneousDemand:
+                  type: number
+                  format: float
+                  description: Instantaneous active power demand in this channel (Watts)
+                  example: 66.037
+                activePower:
+                  type: number
+                  format: float
+                  description: Instantaneous active power in this channel (Watts)
+                  example: 66.037
+                apparentPower:
+                  type: number
+                  format: float
+                  description: Instantaneous apparent power in this channel (VA)
+                  example: 2663.476
+                reactivePower:
+                  type: number
+                  format: float
+                  description: Instantaneous reactive power in this channel (VAr)
+                  example: -2663.476
+                pwrFactor:
+                  type: number
+                  format: float
+                  description: Measured power factor in this channel
+                  example: 0.025
+                voltage:
+                  type: number
+                  format: float
+                  description: Measured voltage in this channel (Volts)
+                  example: 123.184
+                current:
+                  type: number
+                  format: float
+                  description: Measured current in this channel (Amperes)
+                  example: 21.622
+                freq:
+                  type: number
+                  format: float
+                  description: Measured frequency in this channel (Hz)
+                  example: 59.188
+
+    ProductionData:
+      type: object
+      description: Production energy and power values
+      properties:
+        wattHoursToday:
+          type: integer
+          description: Total energy produced today (Wh)
+          example: 21674
+        wattHoursSevenDays:
+          type: integer
+          description: Total energy produced in last 7 days (Wh)
+          example: 719543
+        wattHoursLifetime:
+          type: integer
+          description: Total energy produced lifetime (Wh)
+          example: 1608587
+        wattsNow:
+          type: integer
+          description: Current active power production (Watts)
+          example: 227
+
+    EnergyData:
+      type: object
+      description: Energy data for microinverters, meters, production and consumption
+      properties:
+        production:
+          type: object
+          properties:
+            pcu:
+              type: object
+              description: Measurements from microinverters
+              properties:
+                wattHoursToday:
+                  type: integer
+                  description: Total energy today (Wh)
+                  example: 13251
+                wattHoursSevenDays:
+                  type: integer
+                  description: Total energy last 7 days (Wh)
+                  example: 91306
+                wattHoursLifetime:
+                  type: integer
+                  description: Total energy lifetime (Wh)
+                  example: 8250671
+                wattsNow:
+                  type: integer
+                  description: Current active power (Watts)
+                  example: 596
+            rgm:
+              type: object
+              description: Revenue grade meter (not applicable)
+              properties:
+                wattHoursToday:
+                  type: integer
+                  example: 0
+                wattHoursSevenDays:
+                  type: integer
+                  example: 0
+                wattHoursLifetime:
+                  type: integer
+                  example: 0
+                wattsNow:
+                  type: integer
+                  example: 0
+            eim:
+              type: object
+              description: Envoy Internal production meter
+              properties:
+                wattHoursToday:
+                  type: integer
+                  description: Total energy today (Wh)
+                  example: 0
+                wattHoursSevenDays:
+                  type: integer
+                  description: Total energy last 7 days (Wh)
+                  example: 0
+                wattHoursLifetime:
+                  type: integer
+                  description: Total energy lifetime (Wh)
+                  example: 0
+                wattsNow:
+                  type: integer
+                  description: Current active power (Watts)
+                  example: 0
+        consumption:
+          type: object
+          properties:
+            eim:
+              type: object
+              description: Envoy Internal consumption meter
+              properties:
+                wattHoursToday:
+                  type: integer
+                  description: Total energy today (Wh)
+                  example: 0
+                wattHoursSevenDays:
+                  type: integer
+                  description: Total energy last 7 days (Wh)
+                  example: 0
+                wattHoursLifetime:
+                  type: integer
+                  description: Total energy lifetime (Wh)
+                  example: 0
+                wattsNow:
+                  type: integer
+                  description: Current active power (Watts)
+                  example: 0
+
+    InverterProduction:
+      type: array
+      description: Microinverter production information
+      items:
+        type: object
+        properties:
+          serialNumber:
+            type: string
+            description: Serial number of microinverter
+            example: "121935144671"
+          lastReportDate:
+            type: integer
+            format: int64
+            description: Last report time in epoch format
+            example: 1654171836
+          devType:
+            type: integer
+            description: Device type
+            example: 1
+          lastReportWatts:
+            type: integer
+            description: Last reported active power (Watts)
+            example: 15
+          maxReportWatts:
+            type: integer
+            description: Maximum ever reported power (Watts)
+            example: 38
+
+    LiveDataStatus:
+      type: object
+      description: Meter live data with tasks and counters
+      properties:
+        connection:
+          type: object
+          properties:
+            mqtt_state:
+              type: string
+              description: MQTT broker status
+              example: "connected"
+            prov_state:
+              type: string
+              description: Provisioning status
+              example: "configured"
+            auth_state:
+              type: string
+              description: Authentication status
+              example: "ok"
+            sc_stream:
+              type: string
+              description: Status of live data stream
+              example: "enabled"
+            sc_debug:
+              type: string
+              description: Status of debug stream
+              example: "enabled"
+        meters:
+          type: object
+          properties:
+            last_update:
+              type: integer
+              format: int64
+              description: Last meter data collection timestamp
+              example: 1654221647
+            soc:
+              type: integer
+              description: State of charge of storage device (%)
+              example: 100
+            main_relay_state:
+              type: integer
+              description: Main relay state
+              example: 0
+            gen_relay_state:
+              type: integer
+              description: Generator relay state
+              example: 5
+            backup_bat_mode:
+              type: integer
+              description: Backup battery mode
+              example: 1
+            backup_soc:
+              type: integer
+              description: Backup battery state of charge (%)
+              example: 10
+            is_split_phase:
+              type: integer
+              description: Split-phase grid type indicator
+              example: 1
+            phase_count:
+              type: integer
+              description: Number of connected phases
+              example: 0
+            enc_agg_soc:
+              type: integer
+              description: Aggregate SoC of Encharge (%)
+              example: 100
+            enc_agg_energy:
+              type: integer
+              description: Aggregate energy of Encharge (Wh)
+              example: 24800
+            acb_agg_soc:
+              type: integer
+              description: Aggregate SoC of AC battery (%)
+              example: 0
+            acb_agg_energy:
+              type: integer
+              description: Aggregate energy of AC battery (Wh)
+              example: 0
+            pv:
+              type: object
+              description: Photovoltaic meter readings
+              properties:
+                agg_p_mw:
+                  type: integer
+                  description: Aggregate active power (milliwatts)
+                  example: 329549
+                agg_s_mva:
+                  type: integer
+                  description: Aggregate apparent power (milli volt-amperes)
+                  example: 329549
+                agg_p_ph_a_mw:
+                  type: integer
+                  description: Aggregate active power phase A (milliwatts)
+                  example: 329549
+                agg_p_ph_b_mw:
+                  type: integer
+                  description: Aggregate active power phase B (milliwatts)
+                  example: 0
+                agg_p_ph_c_mw:
+                  type: integer
+                  description: Aggregate active power phase C (milliwatts)
+                  example: 0
+                agg_s_ph_a_mva:
+                  type: integer
+                  description: Aggregate apparent power phase A (milli volt-amperes)
+                  example: 329549
+                agg_s_ph_b_mva:
+                  type: integer
+                  description: Aggregate apparent power phase B (milli volt-amperes)
+                  example: 0
+                agg_s_ph_c_mva:
+                  type: integer
+                  description: Aggregate apparent power phase C (milli volt-amperes)
+                  example: 0
+            storage:
+              type: object
+              description: Battery storage meter readings
+              properties:
+                agg_p_mw:
+                  type: integer
+                  description: Aggregate active power (milliwatts)
+                  example: -220800
+                agg_s_mva:
+                  type: integer
+                  description: Aggregate apparent power (milli volt-amperes)
+                  example: -559446
+                agg_p_ph_a_mw:
+                  type: integer
+                  description: Aggregate active power phase A (milliwatts)
+                  example: -220800
+                agg_p_ph_b_mw:
+                  type: integer
+                  description: Aggregate active power phase B (milliwatts)
+                  example: 0
+                agg_p_ph_c_mw:
+                  type: integer
+                  description: Aggregate active power phase C (milliwatts)
+                  example: 0
+                agg_s_ph_a_mva:
+                  type: integer
+                  description: Aggregate apparent power phase A (milli volt-amperes)
+                  example: -559446
+                agg_s_ph_b_mva:
+                  type: integer
+                  description: Aggregate apparent power phase B (milli volt-amperes)
+                  example: 0
+                agg_s_ph_c_mva:
+                  type: integer
+                  description: Aggregate apparent power phase C (milli volt-amperes)
+                  example: 0
+            grid:
+              type: object
+              description: Grid meter readings
+              properties:
+                agg_p_mw:
+                  type: integer
+                  description: Aggregate active power (milliwatts)
+                  example: 0
+                agg_s_mva:
+                  type: integer
+                  description: Aggregate apparent power (milli volt-amperes)
+                  example: 0
+                agg_p_ph_a_mw:
+                  type: integer
+                  description: Aggregate active power phase A (milliwatts)
+                  example: 0
+                agg_p_ph_b_mw:
+                  type: integer
+                  description: Aggregate active power phase B (milliwatts)
+                  example: 0
+                agg_p_ph_c_mw:
+                  type: integer
+                  description: Aggregate active power phase C (milliwatts)
+                  example: 0
+                agg_s_ph_a_mva:
+                  type: integer
+                  description: Aggregate apparent power phase A (milli volt-amperes)
+                  example: 0
+                agg_s_ph_b_mva:
+                  type: integer
+                  description: Aggregate apparent power phase B (milli volt-amperes)
+                  example: 0
+                agg_s_ph_c_mva:
+                  type: integer
+                  description: Aggregate apparent power phase C (milli volt-amperes)
+                  example: 0
+            load:
+              type: object
+              description: Load meter readings
+              properties:
+                agg_p_mw:
+                  type: integer
+                  description: Aggregate active power (milliwatts)
+                  example: 108749
+                agg_s_mva:
+                  type: integer
+                  description: Aggregate apparent power (milli volt-amperes)
+                  example: -229897
+                agg_p_ph_a_mw:
+                  type: integer
+                  description: Aggregate active power phase A (milliwatts)
+                  example: 108749
+                agg_p_ph_b_mw:
+                  type: integer
+                  description: Aggregate active power phase B (milliwatts)
+                  example: 0
+                agg_p_ph_c_mw:
+                  type: integer
+                  description: Aggregate active power phase C (milliwatts)
+                  example: 0
+                agg_s_ph_a_mva:
+                  type: integer
+                  description: Aggregate apparent power phase A (milli volt-amperes)
+                  example: -229897
+                agg_s_ph_b_mva:
+                  type: integer
+                  description: Aggregate apparent power phase B (milli volt-amperes)
+                  example: 0
+                agg_s_ph_c_mva:
+                  type: integer
+                  description: Aggregate apparent power phase C (milli volt-amperes)
+                  example: 0
+            generator:
+              type: object
+              description: Generator meter readings
+              properties:
+                agg_p_mw:
+                  type: integer
+                  description: Aggregate active power (milliwatts)
+                  example: 0
+                agg_s_mva:
+                  type: integer
+                  description: Aggregate apparent power (milli volt-amperes)
+                  example: 0
+                agg_p_ph_a_mw:
+                  type: integer
+                  description: Aggregate active power phase A (milliwatts)
+                  example: 0
+                agg_p_ph_b_mw:
+                  type: integer
+                  description: Aggregate active power phase B (milliwatts)
+                  example: 0
+                agg_p_ph_c_mw:
+                  type: integer
+                  description: Aggregate active power phase C (milliwatts)
+                  example: 0
+                agg_s_ph_a_mva:
+                  type: integer
+                  description: Aggregate apparent power phase A (milli volt-amperes)
+                  example: 0
+                agg_s_ph_b_mva:
+                  type: integer
+                  description: Aggregate apparent power phase B (milli volt-amperes)
+                  example: 0
+                agg_s_ph_c_mva:
+                  type: integer
+                  description: Aggregate apparent power phase C (milli volt-amperes)
+                  example: 0
+        tasks:
+          type: object
+          properties:
+            task_id:
+              type: integer
+              description: ID of most recent task processed
+              example: 27672012
+            timestamp:
+              type: integer
+              format: int64
+              description: Unix timestamp of last task processed
+              example: 1654219883
+        counters:
+          type: object
+          description: Various system counters
+          additionalProperties:
+            type: integer
+
+    ConsumptionData:
+      type: object
+      description: Power consumption information
+      properties:
+        createdAt:
+          type: integer
+          format: int64
+          description: Epoch timestamp of measurement
+          example: 1654625079
+        reportType:
+          type: string
+          description: Type of consumption report
+          enum: ["net-consumption", "total-consumption"]
+          example: "net-consumption"
+        cumulative:
+          type: object
+          description: Cumulative results of all phases
+          properties:
+            currW:
+              type: number
+              format: float
+              description: Instantaneous active power (Watts)
+              example: 119.423
+            actPower:
+              type: number
+              format: float
+              description: Active power (Watts)
+              example: 119.423
+            apprntPwr:
+              type: number
+              format: float
+              description: Apparent power (VA)
+              example: 105.678
+            reactPwr:
+              type: number
+              format: float
+              description: Reactive power (VAr)
+              example: -261.046
+            whDlvdCum:
+              type: number
+              format: float
+              description: Cumulative active energy delivered (Wh)
+              example: 43110.122
+            whRcvdCum:
+              type: number
+              format: float
+              description: Cumulative active energy received (Wh)
+              example: 0.000
+            varhLagCum:
+              type: number
+              format: float
+              description: Cumulative lagging reactive energy (VArh)
+              example: -25071.856
+            varhLeadCum:
+              type: number
+              format: float
+              description: Cumulative leading reactive energy (VArh)
+              example: 35895.778
+            vahCum:
+              type: number
+              format: float
+              description: Cumulative apparent energy (VAh)
+              example: 192725.807
+            rmsVoltage:
+              type: number
+              format: float
+              description: RMS voltage (Volts)
+              example: 241.427
+            rmsCurrent:
+              type: number
+              format: float
+              description: RMS current (Amperes)
+              example: 0.875
+            pwrFactor:
+              type: number
+              format: float
+              description: Power factor
+              example: 1.00
+            freqHz:
+              type: number
+              format: float
+              description: Frequency (Hz)
+              example: 60.00
+        lines:
+          type: array
+          description: Per-phase measurements
+          items:
+            type: object
+            properties:
+              currW:
+                type: number
+                format: float
+                description: Instantaneous active power (Watts)
+                example: 56.672
+              actPower:
+                type: number
+                format: float
+                description: Active power (Watts)
+                example: 56.672
+              apprntPwr:
+                type: number
+                format: float
+                description: Apparent power (VA)
+                example: 49.248
+              reactPwr:
+                type: number
+                format: float
+                description: Reactive power (VAr)
+                example: -136.579
+              whDlvdCum:
+                type: number
+                format: float
+                description: Cumulative active energy delivered (Wh)
+                example: 21051.342
+              whRcvdCum:
+                type: number
+                format: float
+                description: Cumulative active energy received (Wh)
+                example: 0.000
+              varhLagCum:
+                type: number
+                format: float
+                description: Cumulative lagging reactive energy (VArh)
+                example: -12541.347
+              varhLeadCum:
+                type: number
+                format: float
+                description: Cumulative leading reactive energy (VArh)
+                example: 18473.849
+              vahCum:
+                type: number
+                format: float
+                description: Cumulative apparent energy (VAh)
+                example: 96511.746
+              rmsVoltage:
+                type: number
+                format: float
+                description: RMS voltage (Volts)
+                example: 120.673
+              rmsCurrent:
+                type: number
+                format: float
+                description: RMS current (Amperes)
+                example: 0.408
+              pwrFactor:
+                type: number
+                format: float
+                description: Power factor
+                example: 1.00
+              freqHz:
+                type: number
+                format: float
+                description: Frequency (Hz)
+                example: 60.00
+
+    GridReading:
+      type: array
+      description: Grid connection voltage, current, frequency, and power readings
+      items:
+        type: object
+        properties:
+          channels:
+            type: array
+            description: Per-phase grid readings
+            items:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  description: Phase identifier
+                  enum: ["L1", "L2", "L3"]
+                  example: "L1"
+                activePower:
+                  type: number
+                  format: float
+                  description: Instantaneous active power (Watts, negative=export)
+                  example: -658.588
+                reactivePower:
+                  type: number
+                  format: float
+                  description: Instantaneous reactive power (VAr)
+                  example: -60.154
+                voltage:
+                  type: number
+                  format: float
+                  description: Measured voltage (Volts)
+                  example: 229.632
+                current:
+                  type: number
+                  format: float
+                  description: Measured current (Amperes)
+                  example: 2.885
+                freq:
+                  type: number
+                  format: float
+                  description: Measured frequency (Hz)
+                  example: 50.000

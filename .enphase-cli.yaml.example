@@ -1,0 +1,15 @@
+# Enphase CLI Configuration File
+# Copy this file to ~/.enphase-cli.yaml or ./.enphase-cli.yaml
+
+# Authentication settings
+auth:
+  token: ""              # Bearer token (obtained via 'enphase-cli auth login')
+  username: ""           # Your Enphase account email
+  envoy_serial: ""       # Your IQ Gateway serial number
+
+# Gateway settings  
+gateway:
+  ip: "envoy.local"      # IP address or hostname of your IQ Gateway
+
+# CLI settings
+verbose: false           # Enable verbose output
