@@ -58,12 +58,23 @@ func (s *IvpService) GetConsumption() (*entity.ConsumptionData, error) {
 		return nil, err
 	}
 
-	var consumption v1.ConsumptionData
-	if err := json.Unmarshal(data, &consumption); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal consumption data: %w", err)
+	// Try to unmarshal as array first (which is what the API returns)
+	var consumptionArray []v1.ConsumptionData
+	if err := json.Unmarshal(data, &consumptionArray); err != nil {
+		// If that fails, try as single object (fallback)
+		var consumption v1.ConsumptionData
+		if err := json.Unmarshal(data, &consumption); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal consumption data: %w", err)
+		}
+		return entity.NewConsumptionData(&consumption, data), nil
 	}
 
-	return entity.NewConsumptionData(&consumption, data), nil
+	// If array, take the first element
+	if len(consumptionArray) == 0 {
+		return nil, fmt.Errorf("consumption data array is empty")
+	}
+
+	return entity.NewConsumptionData(&consumptionArray[0], data), nil
 }
 
 // GetGrid returns typed grid reading data
