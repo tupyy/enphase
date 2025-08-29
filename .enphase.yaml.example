@@ -1,9 +1,9 @@
 # Enphase CLI Configuration File
-# Copy this file to ~/.enphase-cli.yaml or ./.enphase-cli.yaml
+# Copy this file to ~/.enphase.yaml or ./.enphase.yaml
 
 # Authentication settings
 auth:
-  token: ""              # Bearer token (obtained via 'enphase-cli auth login')
+  token: ""              # Bearer token (obtained via 'enphase auth login')
   username: ""           # Your Enphase account email
   envoy_serial: ""       # Your IQ Gateway serial number
 

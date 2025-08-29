@@ -47,19 +47,13 @@ model ID, firmware version, and installed packages.
 This endpoint does not require authentication.
 
 Examples:
-  enphase-cli info                              # Get system info
-  enphase-cli info --gateway-ip 192.168.1.100  # Use specific IP`,
+  enphase info                              # Get system info
+  enphase info --gateway-ip 192.168.1.100  # Use specific IP`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return getSystemInfo()
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(infoCmd)
-
-	// Info command flags
-	infoCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-}
 
 func getSystemInfo() error {
 	// Get gateway IP from config if not specified

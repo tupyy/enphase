@@ -19,11 +19,11 @@ Production endpoints provide access to:
 - Individual microinverter production data
 - System-wide energy statistics
 
-All production commands require authentication. Use 'enphase-cli auth login' first.
+All production commands require authentication. Use 'enphase auth login' first.
 
 Examples:
-  enphase-cli production                    # Get production summary (default)
-  enphase-cli production inverters          # Get inverter details`,
+  enphase production                    # Get production summary (default)
+  enphase production inverters          # Get inverter details`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Default action: get production summary
 		return runProductionSummary()
@@ -67,23 +67,6 @@ Returns for each inverter:
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(productionMainCmd)
-
-	// Add subcommands
-	productionMainCmd.AddCommand(summaryCmd)
-	productionMainCmd.AddCommand(invertersCmd)
-
-	// Add gateway-ip flag to main command and all subcommands
-	productionMainCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	summaryCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	invertersCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-
-	// Add raw output flag to main command and all subcommands
-	productionMainCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	summaryCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	invertersCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-}
 
 func runProductionSummary() error {
 	// Get gateway IP from config if not specified

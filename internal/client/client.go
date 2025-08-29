@@ -32,7 +32,7 @@ func NewClient(gatewayIP string) *Client {
 // makeRequest makes an authenticated request to the gateway
 func (c *Client) makeRequest(endpoint string) ([]byte, error) {
 	if c.Token == "" {
-		return nil, fmt.Errorf("no authentication token found. Please run 'enphase-cli auth login' first")
+		return nil, fmt.Errorf("no authentication token found. Please run 'enphase auth login' first")
 	}
 
 	url := fmt.Sprintf("%s%s", c.BaseURL, endpoint)
@@ -56,7 +56,7 @@ func (c *Client) makeRequest(endpoint string) ([]byte, error) {
 	}
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, fmt.Errorf("authentication failed. Token may be expired. Please run 'enphase-cli auth login'")
+		return nil, fmt.Errorf("authentication failed. Token may be expired. Please run 'enphase auth login'")
 	}
 
 	if resp.StatusCode == http.StatusNotFound {

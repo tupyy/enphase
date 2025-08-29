@@ -5,16 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/expfmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tupyy/enphase/internal/service"
 )
 
-var (
-	metricsOutput bool
-)
 
 // summaryMainCmd represents the summary command
 var summaryMainCmd = &cobra.Command{
@@ -26,23 +21,13 @@ This command fetches data from both:
 - IVP consumption endpoint (cumulative current watts)
 - Production inverters endpoint (sum of all inverter last report watts)
 
-Outputs JSON format by default, or Prometheus metrics format with --metrics flag.
+Outputs data in JSON format.
 
 Examples:
-  enphase-cli summary                       # Get combined summary as JSON
-  enphase-cli summary --metrics             # Get combined summary as Prometheus metrics`,
+  enphase summary                       # Get combined summary as JSON`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runSummaryCommand()
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(summaryMainCmd)
-
-	// Add gateway-ip flag
-	summaryMainCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	// Add metrics flag
-	summaryMainCmd.Flags().BoolVar(&metricsOutput, "metrics", false, "Output in Prometheus metrics format")
 }
 
 func runSummaryCommand() error {
@@ -79,9 +64,6 @@ func runSummaryCommand() error {
 		currentConsumptionWatts = float64(consumption.Cumulative.InstantaneousActivePower)
 	}
 
-	if metricsOutput {
-		return outputPrometheusMetrics(currentConsumptionWatts, totalProductionWatts)
-	}
 
 	// Format to 1 decimal place
 	formattedSummary := struct {
@@ -97,48 +79,3 @@ func runSummaryCommand() error {
 	return encoder.Encode(formattedSummary)
 }
 
-func outputPrometheusMetrics(consumptionWatts, productionWatts float64) error {
-	// Create a new registry
-	registry := prometheus.NewRegistry()
-
-	// Create metrics
-	consumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enphase_consumption_watts",
-		Help: "Current power consumption in watts (net consumption from grid)",
-	})
-
-	productionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enphase_production_watts",
-		Help: "Current power production in watts",
-	})
-
-	realConsumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enphase_real_consumption_watts",
-		Help: "Real household power consumption in watts (consumption + production)",
-	})
-
-	// Register metrics
-	registry.MustRegister(consumptionGauge)
-	registry.MustRegister(productionGauge)
-	registry.MustRegister(realConsumptionGauge)
-
-	// Set values
-	consumptionGauge.Set(consumptionWatts)
-	productionGauge.Set(productionWatts)
-	realConsumptionGauge.Set(consumptionWatts + productionWatts)
-
-	// Gather metrics
-	metricFamilies, err := registry.Gather()
-	if err != nil {
-		return fmt.Errorf("failed to gather metrics: %w", err)
-	}
-
-	// Write metrics to stdout in Prometheus format
-	for _, mf := range metricFamilies {
-		if _, err := expfmt.MetricFamilyToText(os.Stdout, mf); err != nil {
-			return fmt.Errorf("failed to write metric family: %w", err)
-		}
-	}
-
-	return nil
-}

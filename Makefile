@@ -1,6 +1,6 @@
-# Simple Makefile for enphase-cli - Linux only
+# Simple Makefile for enphase - Linux only
 
-BINARY_NAME=enphase-cli
+BINARY_NAME=enphase
 BUILD_DIR=./bin
 IMAGE_NAME=quay.io/ctupangiu/enphase
 TAG?=latest

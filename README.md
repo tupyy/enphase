@@ -85,24 +85,24 @@ ping envoy.local
 
 ### 3. Test Connection (No Auth Required)
 ```bash
-./bin/enphase-cli info
+./bin/enphase info
 ```
 
 ### 4. Authenticate
 ```bash
-./bin/enphase-cli auth login --username user@example.com --envoy-serial 123456789012
+./bin/enphase auth login --username user@example.com --envoy-serial 123456789012
 ```
 
 ### 5. Get Production Data
 ```bash
 # Get production summary
-./bin/enphase-cli production
+./bin/enphase production
 
 # Get inverter details
-./bin/enphase-cli production inverters
+./bin/enphase production inverters
 
 # Get live system status
-./bin/enphase-cli ivp livedata
+./bin/enphase ivp livedata
 ```
 
 ### 6. Use the OpenAPI Spec
@@ -130,82 +130,82 @@ ping envoy.local
 ### System Information
 ```bash
 # Get system info (no authentication required)
-./bin/enphase-cli info
+./bin/enphase info
 
 # Use specific gateway IP
-./bin/enphase-cli info --gateway-ip 192.168.1.100
+./bin/enphase info --gateway-ip 192.168.1.100
 ```
 
 ### Authentication
 ```bash
 # Login and save token
-./bin/enphase-cli auth login --username user@example.com --envoy-serial 123456789012
+./bin/enphase auth login --username user@example.com --envoy-serial 123456789012
 
 # Check current token
-./bin/enphase-cli auth token
+./bin/enphase auth token
 
 # Test token validity
-./bin/enphase-cli auth status
+./bin/enphase auth status
 ```
 
 ### Production Data
 ```bash
 # Get production summary
-./bin/enphase-cli production
+./bin/enphase production
 
 # Get detailed inverter data
-./bin/enphase-cli production inverters
+./bin/enphase production inverters
 
 # Get raw JSON output
-./bin/enphase-cli production --raw
-./bin/enphase-cli production inverters --raw
+./bin/enphase production --raw
+./bin/enphase production inverters --raw
 
 # Use verbose output
-./bin/enphase-cli production inverters --verbose
+./bin/enphase production inverters --verbose
 ```
 
 ### IVP Endpoints
 ```bash
 # Get meter details
-./bin/enphase-cli ivp meters
+./bin/enphase ivp meters
 
 # Get detailed meter readings
-./bin/enphase-cli ivp readings
+./bin/enphase ivp readings
 
 # Get consumption data
-./bin/enphase-cli ivp consumption
+./bin/enphase ivp consumption
 
 # Get grid readings
-./bin/enphase-cli ivp grid
+./bin/enphase ivp grid
 
 # Get live system status
-./bin/enphase-cli ivp livedata
+./bin/enphase ivp livedata
 
 # Get device list
-./bin/enphase-cli ivp ensemble
+./bin/enphase ivp ensemble
 
 # Get PDM energy data
-./bin/enphase-cli ivp pdm
+./bin/enphase ivp pdm
 
 # Get raw JSON output for any endpoint
-./bin/enphase-cli ivp meters --raw
-./bin/enphase-cli ivp livedata --raw
-./bin/enphase-cli ivp consumption --raw
+./bin/enphase ivp meters --raw
+./bin/enphase ivp livedata --raw
+./bin/enphase ivp consumption --raw
 ```
 
 ### Output Formats
 ```bash
 # Summary format (default) - Human-readable structured output
-./bin/enphase-cli production
-./bin/enphase-cli ivp meters
+./bin/enphase production
+./bin/enphase ivp meters
 
 # Raw format - Original JSON response from API
-./bin/enphase-cli production --raw
-./bin/enphase-cli ivp meters --raw
+./bin/enphase production --raw
+./bin/enphase ivp meters --raw
 
 # Verbose mode - Show connection details and debug info
-./bin/enphase-cli production --verbose
-./bin/enphase-cli ivp livedata --verbose --raw
+./bin/enphase production --verbose
+./bin/enphase ivp livedata --verbose --raw
 ```
 
 ## 📡 Direct API Usage Examples
@@ -458,7 +458,7 @@ The CLI tool can be easily integrated into scripts and automation:
 ```bash
 #!/bin/bash
 # Simple monitoring script
-CURRENT_POWER=$(./bin/enphase-cli production | jq '.wattsNow')
+CURRENT_POWER=$(./bin/enphase production | jq '.wattsNow')
 echo "Current solar production: ${CURRENT_POWER}W"
 
 # Log to file

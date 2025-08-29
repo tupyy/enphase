@@ -21,7 +21,6 @@ var (
 	envoySerial string
 	gatewayIP   string
 	saveToken   bool
-	rawOutput   bool
 )
 
 // authCmd represents the auth command
@@ -77,26 +76,6 @@ This command will attempt to access a protected endpoint to verify token validit
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(authCmd)
-	authCmd.AddCommand(loginCmd)
-	authCmd.AddCommand(tokenCmd)
-	authCmd.AddCommand(statusCmd)
-
-	// Login command flags
-	loginCmd.Flags().StringVarP(&username, "username", "u", "", "Enphase account username (email)")
-	loginCmd.Flags().StringVarP(&password, "password", "p", "", "Enphase account password (will prompt if not provided)")
-	loginCmd.Flags().StringVarP(&envoySerial, "envoy-serial", "s", "122312002019", "IQ Gateway serial number")
-	loginCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	loginCmd.Flags().BoolVar(&saveToken, "save", true, "Save token to configuration file")
-
-	// Mark required flags
-	loginCmd.MarkFlagRequired("username")
-	loginCmd.MarkFlagRequired("envoy-serial")
-
-	// Status command flags
-	statusCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-}
 
 func performLogin() error {
 	// Get password if not provided
@@ -241,7 +220,7 @@ func getBearerToken(sessionID string) (string, error) {
 func showToken() error {
 	token := viper.GetString("auth.token")
 	if token == "" {
-		fmt.Println("❌ No token found. Please run 'enphase-cli auth login' first.")
+		fmt.Println("❌ No token found. Please run 'enphase auth login' first.")
 		return nil
 	}
 
@@ -268,7 +247,7 @@ func showToken() error {
 func checkAuthStatus() error {
 	token := viper.GetString("auth.token")
 	if token == "" {
-		fmt.Println("❌ No token found. Please run 'enphase-cli auth login' first.")
+		fmt.Println("❌ No token found. Please run 'enphase auth login' first.")
 		return nil
 	}
 

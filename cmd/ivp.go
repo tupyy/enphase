@@ -23,13 +23,13 @@ IVP endpoints provide detailed information about:
 - Grid connection data
 - Device provisioning status
 
-All IVP commands require authentication. Use 'enphase-cli auth login' first.
+All IVP commands require authentication. Use 'enphase auth login' first.
 
 Examples:
-  enphase-cli ivp meters                    # Get meter details
-  enphase-cli ivp readings                  # Get meter readings
-  enphase-cli ivp consumption               # Get consumption data
-  enphase-cli ivp livedata                  # Get live system status`,
+  enphase ivp meters                    # Get meter details
+  enphase ivp readings                  # Get meter readings
+  enphase ivp consumption               # Get consumption data
+  enphase ivp livedata                  # Get live system status`,
 }
 
 // metersCmd represents the ivp meters command
@@ -143,36 +143,6 @@ Works even when production meter is not installed. Includes data from:
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(ivpCmd)
-
-	// Add subcommands
-	ivpCmd.AddCommand(metersCmd)
-	ivpCmd.AddCommand(readingsCmd)
-	ivpCmd.AddCommand(consumptionCmd)
-	ivpCmd.AddCommand(gridCmd)
-	ivpCmd.AddCommand(livedataCmd)
-	ivpCmd.AddCommand(ensembleCmd)
-	ivpCmd.AddCommand(pdmCmd)
-
-	// Add gateway-ip flag to all subcommands
-	metersCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	readingsCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	consumptionCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	gridCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	livedataCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	ensembleCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-	pdmCmd.Flags().StringVarP(&gatewayIP, "gateway-ip", "g", "envoy.local", "IQ Gateway IP address or hostname")
-
-	// Add raw output flag to all subcommands
-	metersCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	readingsCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	consumptionCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	gridCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	livedataCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	ensembleCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-	pdmCmd.Flags().BoolVar(&rawOutput, "raw", false, "Output raw JSON response")
-}
 
 // Helper function to get gateway IP
 func getGatewayIP() string {
