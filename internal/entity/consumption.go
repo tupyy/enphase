@@ -9,6 +9,14 @@ import (
 
 // ConsumptionData represents power consumption information domain entity
 type ConsumptionData struct {
+	// Items holds all consumption data entries from the array
+	Items []ConsumptionItem
+	// Raw holds the original JSON response
+	Raw json.RawMessage
+}
+
+// ConsumptionItem represents a single consumption data entry
+type ConsumptionItem struct {
 	// CreatedAt timestamp of measurement
 	CreatedAt time.Time
 	// ReportType type of consumption report
@@ -17,8 +25,6 @@ type ConsumptionData struct {
 	Cumulative *ConsumptionCumulative
 	// Lines per-phase measurements
 	Lines []ConsumptionLine
-	// Raw holds the original JSON response
-	Raw json.RawMessage
 }
 
 // ConsumptionCumulative represents cumulative consumption data
@@ -55,108 +61,115 @@ type ConsumptionLine struct {
 	Frequency                float32 // Hz
 }
 
-// NewConsumptionData creates a new ConsumptionData entity from API v1 model
-func NewConsumptionData(model *v1.ConsumptionData, rawJSON []byte) *ConsumptionData {
+// NewConsumptionData creates a new ConsumptionData entity from API v1 model array
+func NewConsumptionData(models []v1.ConsumptionData, rawJSON []byte) *ConsumptionData {
 	entity := &ConsumptionData{
-		Raw: json.RawMessage(rawJSON),
+		Raw:   json.RawMessage(rawJSON),
+		Items: make([]ConsumptionItem, len(models)),
 	}
 
-	if model.CreatedAt != nil {
-		entity.CreatedAt = time.Unix(*model.CreatedAt, 0)
-	}
+	for idx, model := range models {
+		item := ConsumptionItem{}
 
-	if model.ReportType != nil {
-		entity.ReportType = string(*model.ReportType)
-	}
+		if model.CreatedAt != nil {
+			item.CreatedAt = time.Unix(*model.CreatedAt, 0)
+		}
 
-	if model.Cumulative != nil {
-		entity.Cumulative = &ConsumptionCumulative{}
-		if model.Cumulative.CurrW != nil {
-			entity.Cumulative.InstantaneousActivePower = *model.Cumulative.CurrW
+		if model.ReportType != nil {
+			item.ReportType = string(*model.ReportType)
 		}
-		if model.Cumulative.ActPower != nil {
-			entity.Cumulative.ActivePower = *model.Cumulative.ActPower
-		}
-		if model.Cumulative.ApprntPwr != nil {
-			entity.Cumulative.ApparentPower = *model.Cumulative.ApprntPwr
-		}
-		if model.Cumulative.ReactPwr != nil {
-			entity.Cumulative.ReactivePower = *model.Cumulative.ReactPwr
-		}
-		if model.Cumulative.WhDlvdCum != nil {
-			entity.Cumulative.EnergyDeliveredCum = *model.Cumulative.WhDlvdCum
-		}
-		if model.Cumulative.WhRcvdCum != nil {
-			entity.Cumulative.EnergyReceivedCum = *model.Cumulative.WhRcvdCum
-		}
-		if model.Cumulative.VarhLagCum != nil {
-			entity.Cumulative.ReactiveEnergyLagCum = *model.Cumulative.VarhLagCum
-		}
-		if model.Cumulative.VarhLeadCum != nil {
-			entity.Cumulative.ReactiveEnergyLeadCum = *model.Cumulative.VarhLeadCum
-		}
-		if model.Cumulative.VahCum != nil {
-			entity.Cumulative.ApparentEnergyCum = *model.Cumulative.VahCum
-		}
-		if model.Cumulative.RmsVoltage != nil {
-			entity.Cumulative.RMSVoltage = *model.Cumulative.RmsVoltage
-		}
-		if model.Cumulative.RmsCurrent != nil {
-			entity.Cumulative.RMSCurrent = *model.Cumulative.RmsCurrent
-		}
-		if model.Cumulative.PwrFactor != nil {
-			entity.Cumulative.PowerFactor = *model.Cumulative.PwrFactor
-		}
-		if model.Cumulative.FreqHz != nil {
-			entity.Cumulative.Frequency = *model.Cumulative.FreqHz
-		}
-	}
 
-	if model.Lines != nil {
-		entity.Lines = make([]ConsumptionLine, len(*model.Lines))
-		for i, line := range *model.Lines {
-			entityLine := ConsumptionLine{}
-			if line.CurrW != nil {
-				entityLine.InstantaneousActivePower = *line.CurrW
+		if model.Cumulative != nil {
+			item.Cumulative = &ConsumptionCumulative{}
+			if model.Cumulative.CurrW != nil {
+				item.Cumulative.InstantaneousActivePower = *model.Cumulative.CurrW
 			}
-			if line.ActPower != nil {
-				entityLine.ActivePower = *line.ActPower
+			if model.Cumulative.ActPower != nil {
+				item.Cumulative.ActivePower = *model.Cumulative.ActPower
 			}
-			if line.ApprntPwr != nil {
-				entityLine.ApparentPower = *line.ApprntPwr
+			if model.Cumulative.ApprntPwr != nil {
+				item.Cumulative.ApparentPower = *model.Cumulative.ApprntPwr
 			}
-			if line.ReactPwr != nil {
-				entityLine.ReactivePower = *line.ReactPwr
+			if model.Cumulative.ReactPwr != nil {
+				item.Cumulative.ReactivePower = *model.Cumulative.ReactPwr
 			}
-			if line.WhDlvdCum != nil {
-				entityLine.EnergyDeliveredCum = *line.WhDlvdCum
+			if model.Cumulative.WhDlvdCum != nil {
+				item.Cumulative.EnergyDeliveredCum = *model.Cumulative.WhDlvdCum
 			}
-			if line.WhRcvdCum != nil {
-				entityLine.EnergyReceivedCum = *line.WhRcvdCum
+			if model.Cumulative.WhRcvdCum != nil {
+				item.Cumulative.EnergyReceivedCum = *model.Cumulative.WhRcvdCum
 			}
-			if line.VarhLagCum != nil {
-				entityLine.ReactiveEnergyLagCum = *line.VarhLagCum
+			if model.Cumulative.VarhLagCum != nil {
+				item.Cumulative.ReactiveEnergyLagCum = *model.Cumulative.VarhLagCum
 			}
-			if line.VarhLeadCum != nil {
-				entityLine.ReactiveEnergyLeadCum = *line.VarhLeadCum
+			if model.Cumulative.VarhLeadCum != nil {
+				item.Cumulative.ReactiveEnergyLeadCum = *model.Cumulative.VarhLeadCum
 			}
-			if line.VahCum != nil {
-				entityLine.ApparentEnergyCum = *line.VahCum
+			if model.Cumulative.VahCum != nil {
+				item.Cumulative.ApparentEnergyCum = *model.Cumulative.VahCum
 			}
-			if line.RmsVoltage != nil {
-				entityLine.RMSVoltage = *line.RmsVoltage
+			if model.Cumulative.RmsVoltage != nil {
+				item.Cumulative.RMSVoltage = *model.Cumulative.RmsVoltage
 			}
-			if line.RmsCurrent != nil {
-				entityLine.RMSCurrent = *line.RmsCurrent
+			if model.Cumulative.RmsCurrent != nil {
+				item.Cumulative.RMSCurrent = *model.Cumulative.RmsCurrent
 			}
-			if line.PwrFactor != nil {
-				entityLine.PowerFactor = *line.PwrFactor
+			if model.Cumulative.PwrFactor != nil {
+				item.Cumulative.PowerFactor = *model.Cumulative.PwrFactor
 			}
-			if line.FreqHz != nil {
-				entityLine.Frequency = *line.FreqHz
+			if model.Cumulative.FreqHz != nil {
+				item.Cumulative.Frequency = *model.Cumulative.FreqHz
 			}
-			entity.Lines[i] = entityLine
 		}
+
+		if model.Lines != nil {
+			item.Lines = make([]ConsumptionLine, len(*model.Lines))
+			for i, line := range *model.Lines {
+				entityLine := ConsumptionLine{}
+				if line.CurrW != nil {
+					entityLine.InstantaneousActivePower = *line.CurrW
+				}
+				if line.ActPower != nil {
+					entityLine.ActivePower = *line.ActPower
+				}
+				if line.ApprntPwr != nil {
+					entityLine.ApparentPower = *line.ApprntPwr
+				}
+				if line.ReactPwr != nil {
+					entityLine.ReactivePower = *line.ReactPwr
+				}
+				if line.WhDlvdCum != nil {
+					entityLine.EnergyDeliveredCum = *line.WhDlvdCum
+				}
+				if line.WhRcvdCum != nil {
+					entityLine.EnergyReceivedCum = *line.WhRcvdCum
+				}
+				if line.VarhLagCum != nil {
+					entityLine.ReactiveEnergyLagCum = *line.VarhLagCum
+				}
+				if line.VarhLeadCum != nil {
+					entityLine.ReactiveEnergyLeadCum = *line.VarhLeadCum
+				}
+				if line.VahCum != nil {
+					entityLine.ApparentEnergyCum = *line.VahCum
+				}
+				if line.RmsVoltage != nil {
+					entityLine.RMSVoltage = *line.RmsVoltage
+				}
+				if line.RmsCurrent != nil {
+					entityLine.RMSCurrent = *line.RmsCurrent
+				}
+				if line.PwrFactor != nil {
+					entityLine.PowerFactor = *line.PwrFactor
+				}
+				if line.FreqHz != nil {
+					entityLine.Frequency = *line.FreqHz
+				}
+				item.Lines[i] = entityLine
+			}
+		}
+
+		entity.Items[idx] = item
 	}
 
 	return entity

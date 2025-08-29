@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,11 +20,12 @@ var summaryMainCmd = &cobra.Command{
 This command fetches data from both:
 - IVP consumption endpoint (cumulative current watts)
 - Production inverters endpoint (sum of all inverter last report watts)
+- Production data endpoint (energy today)
 
-Outputs data in JSON format.
+Outputs data in table format with the same metrics as the metrics command.
 
 Examples:
-  enphase summary                       # Get combined summary as JSON`,
+  enphase summary                       # Get combined summary as table`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runSummaryCommand()
 	},
@@ -49,33 +50,64 @@ func runSummaryCommand() error {
 		return fmt.Errorf("failed to get consumption data: %w", err)
 	}
 
-	// Fetch production inverters data
-	inverters, err := apiService.GetProductionInverters()
+	// Fetch production data
+	production, err := apiService.GetProduction()
 	if err != nil {
-		return fmt.Errorf("failed to get production inverters data: %w", err)
+		return fmt.Errorf("failed to get production data: %w", err)
 	}
+
+	// Fetch PDM energy data for consumption today
+	pdm, err := ivpService.GetPDM()
+	if err != nil {
+		return fmt.Errorf("failed to get PDM energy data: %w", err)
+	}
+
 
 	// Calculate total production watts
-	totalProductionWatts := float64(inverters.TotalCurrentPower())
+	totalProductionWatts := float64(production.PowerNow)
 
-	// Get current consumption watts from cumulative data
-	var currentConsumptionWatts float64
-	if consumption.Cumulative != nil {
-		currentConsumptionWatts = float64(consumption.Cumulative.InstantaneousActivePower)
+	// Calculate total consumption and net consumption from all consumption items
+	var totalConsumptionWatts, netConsumptionWatts float64
+	
+	for _, item := range consumption.Items {
+		if item.Cumulative != nil {
+			// Total consumption is the sum of all consumption entries
+			totalConsumptionWatts += float64(item.Cumulative.InstantaneousActivePower)
+		}
+	}
+	
+	// Net consumption = Total consumption - Total production
+	netConsumptionWatts = totalConsumptionWatts - totalProductionWatts
+
+	// Energy today from production
+	energyToday := float64(production.EnergyToday)
+
+	// Get consumption energy today from PDM
+	var consumptionEnergyToday float64
+	if pdm.Consumption != nil && pdm.Consumption.EIM != nil {
+		consumptionEnergyToday = float64(pdm.Consumption.EIM.EnergyToday)
 	}
 
+	// Output as table
+	return outputSummaryTable(netConsumptionWatts, totalConsumptionWatts, totalProductionWatts, energyToday, consumptionEnergyToday)
+}
 
-	// Format to 1 decimal place
-	formattedSummary := struct {
-		ConsumptionWatts string `json:"consumption_watts"`
-		ProductionWatts  string `json:"production_watts"`
-	}{
-		ConsumptionWatts: fmt.Sprintf("%.1f", currentConsumptionWatts),
-		ProductionWatts:  fmt.Sprintf("%.1f", totalProductionWatts),
-	}
-
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(formattedSummary)
+func outputSummaryTable(netConsumptionWatts, totalConsumptionWatts, productionWatts, wattHoursToday, consumptionWattHoursToday float64) error {
+	// Create a new tab writer for table formatting
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	
+	// Print table header
+	fmt.Fprintln(w, "METRIC\tVALUE\tUNIT")
+	fmt.Fprintln(w, "------\t-----\t----")
+	
+	// Print metrics (same as metrics command)
+	fmt.Fprintf(w, "Net Consumption\t%.1f\tW\n", netConsumptionWatts)
+	fmt.Fprintf(w, "Total Consumption\t%.1f\tW\n", totalConsumptionWatts)
+	fmt.Fprintf(w, "Production (Current)\t%.1f\tW\n", productionWatts)
+	fmt.Fprintf(w, "Production (Today)\t%.0f\tWh\n", wattHoursToday)
+	fmt.Fprintf(w, "Consumption (Today)\t%.0f\tWh\n", consumptionWattHoursToday)
+	
+	// Flush the table
+	return w.Flush()
 }
 

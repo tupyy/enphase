@@ -51,18 +51,43 @@ func runMetricsCommand() error {
 	}
 
 	// Fetch production inverters data
+	production, err := apiService.GetProduction()
+	if err != nil {
+		return fmt.Errorf("failed to get production data: %w", err)
+	}
+
 	inverters, err := apiService.GetProductionInverters()
 	if err != nil {
 		return fmt.Errorf("failed to get production inverters data: %w", err)
 	}
 
-	// Calculate total production watts
-	totalProductionWatts := float64(inverters.TotalCurrentPower())
+	// Fetch PDM energy data for consumption today
+	pdm, err := ivpService.GetPDM()
+	if err != nil {
+		return fmt.Errorf("failed to get PDM energy data: %w", err)
+	}
 
-	// Get current consumption watts from cumulative data
-	var currentConsumptionWatts float64
-	if consumption.Cumulative != nil {
-		currentConsumptionWatts = float64(consumption.Cumulative.InstantaneousActivePower)
+	// Calculate total production watts
+	totalProductionWatts := float64(production.PowerNow)
+
+	// Calculate total consumption and net consumption from specific report types
+	var totalConsumptionWatts, netConsumptionWatts float64
+	
+	for _, item := range consumption.Items {
+		if item.Cumulative != nil {
+			switch item.ReportType {
+			case "total-consumption":
+				totalConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
+			case "net-consumption":
+				netConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
+			}
+		}
+	}
+
+	// Get consumption energy today from PDM
+	var consumptionEnergyToday float64
+	if pdm.Consumption != nil && pdm.Consumption.EIM != nil {
+		consumptionEnergyToday = float64(pdm.Consumption.EIM.EnergyToday)
 	}
 
 	// Get individual inverter production data
@@ -71,16 +96,16 @@ func runMetricsCommand() error {
 		invertersProduction[inv.SerialNumber] = float64(inv.LastReportWatts)
 	}
 
-	return outputPrometheusMetrics(currentConsumptionWatts, totalProductionWatts, invertersProduction)
+	return outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatts, totalProductionWatts, float64(production.EnergyToday), consumptionEnergyToday, invertersProduction)
 }
 
-func outputPrometheusMetrics(consumptionWatts, productionWatts float64, invertersProduction map[string]float64) error {
+func outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatt, productionWatts, wattHoursToday, consumptionWattHoursToday float64, invertersProduction map[string]float64) error {
 	// Create a new registry
 	registry := prometheus.NewRegistry()
 
 	// Create metrics
 	consumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enphase_consumption_watts",
+		Name: "enphase_net_consumption_watts",
 		Help: "Current power consumption in watts (net consumption from grid)",
 	})
 
@@ -89,9 +114,9 @@ func outputPrometheusMetrics(consumptionWatts, productionWatts float64, inverter
 		Help: "Current power production in watts",
 	})
 
-	realConsumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "enphase_real_consumption_watts",
-		Help: "Real household power consumption in watts (consumption + production)",
+	totalConsumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "enphase_total_consumption_watts",
+		Help: "Total power consumption in watts",
 	})
 
 	invertersProductionGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -99,16 +124,30 @@ func outputPrometheusMetrics(consumptionWatts, productionWatts float64, inverter
 		Help: "Power production per inverters in watts",
 	}, []string{"sn"})
 
+	wattHoursTodayGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "enphase_production_watt_hours_today",
+		Help: "Total energy production today in watt-hours",
+	})
+
+	consumptionWattHoursTodayGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "enphase_consumption_watt_hours_today",
+		Help: "Total energy consumption today in watt-hours",
+	})
+
 	// Register metrics
 	registry.MustRegister(consumptionGauge)
 	registry.MustRegister(productionGauge)
-	registry.MustRegister(realConsumptionGauge)
+	registry.MustRegister(totalConsumptionGauge)
 	registry.MustRegister(invertersProductionGauge)
+	registry.MustRegister(wattHoursTodayGauge)
+	registry.MustRegister(consumptionWattHoursTodayGauge)
 
 	// Set values
-	consumptionGauge.Set(consumptionWatts)
+	consumptionGauge.Set(netConsumptionWatts)
 	productionGauge.Set(productionWatts)
-	realConsumptionGauge.Set(consumptionWatts + productionWatts)
+	totalConsumptionGauge.Set(totalConsumptionWatt)
+	wattHoursTodayGauge.Set(wattHoursToday)
+	consumptionWattHoursTodayGauge.Set(consumptionWattHoursToday)
 
 	for sn, value := range invertersProduction {
 		invertersProductionGauge.With(prometheus.Labels{"sn": sn}).Set(value)
