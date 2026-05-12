@@ -67,22 +67,22 @@ func runMetricsCommand() error {
 		return fmt.Errorf("failed to get PDM energy data: %w", err)
 	}
 
-	// Calculate total production watts
-	totalProductionWatts := float64(production.PowerNow)
+	// Calculate total production watts from inverters (more accurate than production CT)
+	var totalProductionWatts float64
+	for _, inv := range inverters.Inverters {
+		totalProductionWatts += float64(inv.LastReportWatts)
+	}
 
-	// Calculate total consumption and net consumption from specific report types
-	var totalConsumptionWatts, netConsumptionWatts float64
-	
+	// Get net consumption from the grid CT
+	var netConsumptionWatts float64
 	for _, item := range consumption.Items {
-		if item.Cumulative != nil {
-			switch item.ReportType {
-			case "total-consumption":
-				totalConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
-			case "net-consumption":
-				netConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
-			}
+		if item.Cumulative != nil && item.ReportType == "net-consumption" {
+			netConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
 		}
 	}
+
+	// Derive total consumption: production + net (net is negative when exporting)
+	totalConsumptionWatts := totalProductionWatts + netConsumptionWatts
 
 	// Get consumption energy today from PDM
 	var consumptionEnergyToday float64
