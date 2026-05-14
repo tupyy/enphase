@@ -67,17 +67,16 @@ func runMetricsCommand() error {
 		return fmt.Errorf("failed to get PDM energy data: %w", err)
 	}
 
-	// Calculate total production watts from inverters (more accurate than production CT)
-	var totalProductionWatts float64
-	for _, inv := range inverters.Inverters {
-		totalProductionWatts += float64(inv.LastReportWatts)
-	}
+	// Calibrated production CT (raw CT reads ~56.26% of actual, per regression against inverter sum)
+	totalProductionWatts := float64(production.PowerNow) / 0.5626
 
 	// Get net consumption from the grid CT
 	var netConsumptionWatts float64
+	var netConsumptionActivePower float64
 	for _, item := range consumption.Items {
 		if item.Cumulative != nil && item.ReportType == "net-consumption" {
 			netConsumptionWatts = float64(item.Cumulative.InstantaneousActivePower)
+			netConsumptionActivePower = float64(item.Cumulative.ActivePower)
 		}
 	}
 
@@ -96,10 +95,10 @@ func runMetricsCommand() error {
 		invertersProduction[inv.SerialNumber] = float64(inv.LastReportWatts)
 	}
 
-	return outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatts, totalProductionWatts, float64(production.EnergyToday), consumptionEnergyToday, invertersProduction)
+	return outputPrometheusMetrics(netConsumptionWatts, netConsumptionActivePower, totalConsumptionWatts, totalProductionWatts, float64(production.EnergyToday), consumptionEnergyToday, invertersProduction)
 }
 
-func outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatt, productionWatts, wattHoursToday, consumptionWattHoursToday float64, invertersProduction map[string]float64) error {
+func outputPrometheusMetrics(netConsumptionWatts, netConsumptionActivePower, totalConsumptionWatt, productionWatts, wattHoursToday, consumptionWattHoursToday float64, invertersProduction map[string]float64) error {
 	// Create a new registry
 	registry := prometheus.NewRegistry()
 
@@ -107,6 +106,11 @@ func outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatt, producti
 	consumptionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "enphase_net_consumption_watts",
 		Help: "Current power consumption in watts (net consumption from grid)",
+	})
+
+	consumptionActivePowerGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "enphase_net_consumption_active_power_watts",
+		Help: "Active power net consumption in watts (smoothed, from grid CT)",
 	})
 
 	productionGauge := prometheus.NewGauge(prometheus.GaugeOpts{
@@ -135,6 +139,7 @@ func outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatt, producti
 	})
 
 	// Register metrics
+	registry.MustRegister(consumptionActivePowerGauge)
 	registry.MustRegister(consumptionGauge)
 	registry.MustRegister(productionGauge)
 	registry.MustRegister(totalConsumptionGauge)
@@ -143,6 +148,7 @@ func outputPrometheusMetrics(netConsumptionWatts, totalConsumptionWatt, producti
 	registry.MustRegister(consumptionWattHoursTodayGauge)
 
 	// Set values
+	consumptionActivePowerGauge.Set(netConsumptionActivePower)
 	consumptionGauge.Set(netConsumptionWatts)
 	productionGauge.Set(productionWatts)
 	totalConsumptionGauge.Set(totalConsumptionWatt)

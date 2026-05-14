@@ -56,23 +56,14 @@ func runSummaryCommand() error {
 		return fmt.Errorf("failed to get production data: %w", err)
 	}
 
-	// Fetch production inverters data
-	inverters, err := apiService.GetProductionInverters()
-	if err != nil {
-		return fmt.Errorf("failed to get production inverters data: %w", err)
-	}
-
 	// Fetch PDM energy data for consumption today
 	pdm, err := ivpService.GetPDM()
 	if err != nil {
 		return fmt.Errorf("failed to get PDM energy data: %w", err)
 	}
 
-	// Calculate total production watts from inverters (more accurate than production CT)
-	var totalProductionWatts float64
-	for _, inv := range inverters.Inverters {
-		totalProductionWatts += float64(inv.LastReportWatts)
-	}
+	// Calibrated production CT (raw CT reads ~56.26% of actual, per regression against inverter sum)
+	totalProductionWatts := float64(production.PowerNow) / 0.5626
 
 	// Get net consumption from the grid CT
 	var netConsumptionWatts float64

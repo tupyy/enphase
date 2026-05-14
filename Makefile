@@ -2,7 +2,7 @@
 
 BINARY_NAME=enphase
 BUILD_DIR=./bin
-IMAGE_NAME=quay.io/ctupangiu/enphase
+IMAGE_NAME=rhel2.tls.tupangiu.ro:5000/enphase
 TAG?=latest
 
 # Build for Linux x86_64
@@ -34,3 +34,8 @@ container-push: container-build
 # Build and push container image
 .PHONY: container-release
 container-release: container-push
+
+# Deploy using Ansible playbook
+.PHONY: deploy
+deploy:
+	ansible-playbook -i ~/projects/home_infra/ansible/inventories/rhel.yml deploy/playbook.yml

@@ -1,0 +1,102 @@
+---
+- name: Build enphase binary
+  hosts: localhost
+  gather_facts: false
+  vars:
+    src_dir: "{{ playbook_dir }}/.."
+  tasks:
+    - name: Build binary
+      ansible.builtin.command:
+        cmd: make build
+        chdir: "{{ src_dir }}"
+      changed_when: true
+
+- name: Deploy enphase to rhel2
+  hosts: rhel2.tls.tupangiu.ro
+  become: true
+  vars:
+    src_dir: "{{ playbook_dir }}/.."
+    install_dir: /opt/enphase
+    config_file: /home/cosmin/.enphase.yaml
+    metrics_output_dir: /var/lib/node_exporter
+    metrics_file: enphase.prom
+
+  handlers:
+    - name: systemd reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: restart enphase timer
+      ansible.builtin.systemd:
+        name: enphase.timer
+        state: restarted
+
+  tasks:
+    - name: Create install directory
+      ansible.builtin.file:
+        path: "{{ install_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Create metrics output directory
+      ansible.builtin.file:
+        path: "{{ metrics_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy enphase binary
+      ansible.builtin.copy:
+        src: "{{ src_dir }}/bin/enphase"
+        dest: "{{ install_dir }}/enphase"
+        mode: '0755'
+      notify: restart enphase timer
+
+    - name: Copy enphase configuration
+      ansible.builtin.copy:
+        src: "{{ config_file }}"
+        dest: /etc/enphase.yaml
+        mode: '0644'
+        backup: yes
+
+    - name: Create enphase service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/enphase.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Enphase metrics exporter
+
+          [Service]
+          Type=oneshot
+          ExecStart=/bin/sh -c "{{ install_dir }}/enphase --config /etc/enphase.yaml metrics > {{ metrics_output_dir }}/{{ metrics_file }}"
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: systemd reload
+
+    - name: Create enphase timer file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/enphase.timer
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Run Enphase metrics collection every 2 minutes
+          Requires=enphase.service
+
+          [Timer]
+          OnBootSec=2min
+          OnUnitActiveSec=2min
+
+          [Install]
+          WantedBy=timers.target
+      notify: systemd reload
+
+    - name: Force systemd reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and start enphase timer
+      ansible.builtin.systemd:
+        name: enphase.timer
+        enabled: true
+        state: started
