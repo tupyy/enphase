@@ -192,7 +192,7 @@ func NewMeterReadings(model *v1.MeterReadings, rawJSON []byte) *MeterReadings {
 						entityChannel.Phase = derivePhaseFromChannelID(*channel.Eid)
 					}
 					if channel.Timestamp != nil {
-						entityChannel.Timestamp = time.Unix(*channel.Timestamp, 0)
+						entityChannel.Timestamp = time.Unix(int64(*channel.Timestamp), 0)
 					}
 					if channel.ActEnergyDlvd != nil {
 						entityChannel.ActiveEnergyDelivered = *channel.ActEnergyDlvd

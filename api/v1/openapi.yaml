@@ -615,8 +615,8 @@ components:
                   description: Channel ID
                   example: 1778385169
                 timestamp:
-                  type: integer
-                  format: int64
+                  type: number
+                  format: double
                   description: Epoch timestamp
                   example: 1654218661
                 actEnergyDlvd:
