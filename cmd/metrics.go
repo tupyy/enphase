@@ -61,32 +61,34 @@ func runMetricsCommand() error {
 	if err != nil {
 		return fmt.Errorf("failed to get production inverters data: %w", err)
 	}
-
-	// Sum inverter production (more accurate than the miscalibrated production CT)
-	var totalProductionWatts float64
 	invertersProduction := make(map[string]float64)
 	for _, inv := range inverters.Inverters {
 		invertersProduction[inv.SerialNumber] = float64(inv.LastReportWatts)
-		totalProductionWatts += float64(inv.LastReportWatts)
 	}
 
-	// Find net-consumption meter eid
+	// Find production and net-consumption meter eids
+	var productionEid int64
 	var netConsumptionEid int64
 	for _, m := range meters.Meters {
+		if m.IsProduction {
+			productionEid = m.ID
+		}
 		if m.IsConsumption {
 			netConsumptionEid = m.ID
-			break
 		}
 	}
 
-	// Get net consumption from meter readings
+	// Get production and net consumption from meter readings
+	var totalProductionWatts float64
 	var netConsumptionWatts float64
 	var netConsumptionActivePower float64
 	for _, r := range readings.Readings {
+		if r.ID == productionEid {
+			totalProductionWatts = float64(r.ActivePower)
+		}
 		if r.ID == netConsumptionEid {
 			netConsumptionWatts = float64(r.InstantaneousDemand)
 			netConsumptionActivePower = float64(r.ActivePower)
-			break
 		}
 	}
 
